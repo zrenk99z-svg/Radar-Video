@@ -1,0 +1,9 @@
+# Configuração do Cloudflare Pages (hospedagem privada do Radar).
+# O deploy envia a pasta `dist/` (build) + a Pages Function em `functions/`.
+name = "refugio-nerd-radar"
+compatibility_date = "2025-07-01"
+pages_build_output_dir = "dist"
+
+# A senha NÃO fica aqui. Ela é definida como variável de ambiente
+# (SITE_PASSWORD) no painel do Cloudflare Pages ou via:
+#   npx wrangler pages secret put SITE_PASSWORD
