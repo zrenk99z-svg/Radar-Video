@@ -37,19 +37,34 @@ super-heróis e cultura nerd).
 9. **Modo Viral** (bônus) — destaca os 5 temas com maior chance de gerar views
    no curto prazo.
 
-### Dados reais vs. simulados
+### Dados reais e atuais (mês corrente)
 
-O app funciona 100% offline com dados simulados. Para ativar fontes reais,
-abra **Configurações** (ícone de engrenagem) e informe:
+Quando publicado na **Vercel**, o app busca tendências **reais e do mês atual**
+por meio da função serverless [`api/trends.js`](api/trends.js), que roda no
+servidor (sem bloqueio de CORS):
+
+| Fonte | Como | Chave? |
+|---|---|---|
+| **Reddit** | Posts em alta (`hot`) de subreddits nerds — tempo real | Não |
+| **Google Trends** | Buscas em alta hoje no Brasil (`dailytrends`) | Não |
+| **YouTube** | Vídeos populares dos últimos 30 dias (Data API v3) | Sim — variável `YOUTUBE_API_KEY` na Vercel |
+
+Para ativar o YouTube: no projeto da Vercel → **Settings → Environment
+Variables** → adicione `YOUTUBE_API_KEY` com sua chave da YouTube Data API v3 e
+faça **Redeploy**. Reddit e Google Trends já funcionam sem nenhuma configuração.
+
+O front-end chama `/api/trends` primeiro; se ela não existir (ex.: `npm run dev`
+local ou outro host), ele tenta buscar pelo navegador usando as chaves opcionais
+de **Configurações** e, por fim, cai para dados **simulados** — sempre
+sinalizado na interface (`ao vivo` / `simulado`).
+
+As chaves opcionais de **Configurações** (usadas só no modo cliente/fallback):
 
 | Campo | Habilita |
 |---|---|
-| **YouTube Data API v3 — chave** | Tendências e concorrência reais do YouTube |
-| **Google Trends — URL do proxy** | Termos relacionados em alta (não há API pública com CORS; requer um proxy próprio que aceite `?q=&geo=BR`) |
+| **YouTube Data API v3 — chave** | YouTube no navegador (fallback, sem servidor) |
+| **Google Trends — URL do proxy** | Proxy próprio (fallback) que aceite `?q=&geo=BR` |
 | **Anthropic (Claude) — chave** | Modo IA no gerador de títulos |
-
-Cada fonte que falhar (bloqueio de CORS, sem chave, sem proxy) cai
-automaticamente para dados simulados, claramente sinalizados na interface.
 
 > ⚠️ **Sobre a chave da Anthropic:** o modo IA chama a API da Anthropic direto
 > do navegador (adequado apenas para uso pessoal/protótipo). Em produção, use um

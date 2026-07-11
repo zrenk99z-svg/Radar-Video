@@ -21,11 +21,32 @@ function simulatedFor(source: TrendSource, note?: string): SourceResult {
 }
 
 /**
- * Busca tendências reais de Reddit, YouTube e Google Trends conforme as
- * configurações. Cada fonte que falhar (CORS, sem chave, sem proxy) cai
- * automaticamente para dados simulados, sinalizados como `live: false`.
+ * Tenta a função serverless /api/trends (Vercel), que busca dados REAIS e
+ * ATUAIS do mês no servidor (sem CORS): Reddit + Google Trends sem chave e
+ * YouTube quando YOUTUBE_API_KEY está definida. Lança erro se indisponível
+ * (ex.: `npm run dev` local ou host sem essa função) para cair no fallback.
  */
-export async function fetchAllTrends(
+async function fetchServerTrends(
+  subject: string | undefined,
+  signal?: AbortSignal,
+): Promise<SourceResult[]> {
+  const url = subject
+    ? `/api/trends?q=${encodeURIComponent(subject)}`
+    : "/api/trends";
+  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`/api/trends HTTP ${res.status}`);
+  const data = (await res.json()) as { sources?: SourceResult[] };
+  if (!Array.isArray(data.sources) || data.sources.length === 0) {
+    throw new Error("/api/trends sem dados");
+  }
+  // Se alguma fonte veio vazia (falhou no servidor), mostra simulado para ela.
+  return data.sources.map((s) =>
+    s.live && s.trends.length ? s : simulatedFor(s.source, s.note),
+  );
+}
+
+/** Busca no cliente (fallback): usa chaves/proxy das Configurações. */
+async function fetchClientTrends(
   settings: Settings,
   subject?: string,
   signal?: AbortSignal,
@@ -57,6 +78,23 @@ export async function fetchAllTrends(
       );
 
   return Promise.all([reddit, youtube, google]);
+}
+
+/**
+ * Busca tendências reais e atuais. Prioriza a função serverless /api/trends
+ * (dados do mês corrente, sem CORS); se ela não existir/falhar, cai para a
+ * busca no cliente e, por fim, para dados simulados.
+ */
+export async function fetchAllTrends(
+  settings: Settings,
+  subject?: string,
+  signal?: AbortSignal,
+): Promise<SourceResult[]> {
+  try {
+    return await fetchServerTrends(subject, signal);
+  } catch {
+    return fetchClientTrends(settings, subject, signal);
+  }
 }
 
 /** Nome de exibição por fonte. */

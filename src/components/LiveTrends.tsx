@@ -18,6 +18,10 @@ interface Props {
 export function LiveTrends({ settings, subject, onExplore }: Props) {
   const [results, setResults] = useState<SourceResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const currentMonth = new Date().toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
 
   const load = useCallback(
     (signal?: AbortSignal) => {
@@ -56,7 +60,7 @@ export function LiveTrends({ settings, subject, onExplore }: Props) {
               Radar de Tendências
             </h2>
             <p className="text-sm text-slate-400">
-              Assuntos realmente comentados agora — clique para gerar ideias.
+              Em alta agora ({currentMonth}) — clique para gerar ideias.
             </p>
           </div>
         </div>
