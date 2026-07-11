@@ -15,7 +15,6 @@ import { TitleLab } from "./components/TitleLab";
 import { EditorialCalendar } from "./components/EditorialCalendar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { InstallPrompt } from "./components/InstallPrompt";
-import { Monogram } from "./components/Monogram";
 import { FireIcon, GearIcon, RadarIcon, SparkIcon } from "./components/Icons";
 
 const STORAGE_KEY = "refugio-nerd:proximos-videos";
@@ -196,16 +195,15 @@ function Header({
     <header className="safe-top sticky top-0 z-20 border-b border-white/5 bg-void-900/70 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <a href="#" className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-void-700/70 ring-1 ring-white/10">
-            <Monogram className="text-base text-creme-200" />
-          </span>
-          <span className="leading-tight">
-            <span className="block font-display text-sm text-slate-100">
-              Refúgio Nerd
-            </span>
-            <span className="block font-mono text-[11px] uppercase tracking-widest text-electric-400">
-              Radar de Vídeos
-            </span>
+          <img
+            src="/logo-rn.png"
+            alt="Refúgio Nerd"
+            className="h-8 w-auto"
+            width={82}
+            height={32}
+          />
+          <span className="hidden font-mono text-[11px] uppercase tracking-widest text-electric-400 sm:block">
+            Radar de Vídeos
           </span>
         </a>
         <nav className="hidden items-center gap-6 text-sm text-slate-400 lg:flex">
