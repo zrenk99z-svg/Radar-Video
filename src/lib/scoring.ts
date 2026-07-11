@@ -60,9 +60,9 @@ export function scoreLabel(score: number): string {
 
 /** Classe de cor (tailwind) para uma pontuação. */
 export function scoreColor(score: number): string {
-  if (score >= 85) return "text-emerald-300";
-  if (score >= 70) return "text-electric-400";
-  if (score >= 55) return "text-sky-300";
-  if (score >= 40) return "text-amber-300";
-  return "text-rose-300";
+  if (score >= 85) return "text-creme-100"; // explosivo
+  if (score >= 70) return "text-electric-400"; // Brasa
+  if (score >= 55) return "text-grape-400"; // âmbar
+  if (score >= 40) return "text-slate-300";
+  return "text-slate-500";
 }

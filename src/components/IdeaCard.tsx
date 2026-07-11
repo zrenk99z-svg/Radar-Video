@@ -36,7 +36,7 @@ export function IdeaCard({ idea, rank, saved, viral, onToggleSave }: Props) {
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="font-display text-[15px] font-semibold leading-snug text-slate-100">
+          <h3 className="text-[15px] font-semibold leading-snug text-slate-100">
             {idea.title}
           </h3>
           <div className="mt-2 flex flex-wrap items-center gap-2">

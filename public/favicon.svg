@@ -1,13 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#38bdf8" />
-      <stop offset="1" stop-color="#9333ea" />
-    </linearGradient>
+    <radialGradient id="e" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffb15e"/><stop offset="55%" stop-color="#ff7a2e"/><stop offset="100%" stop-color="#e8631a"/>
+    </radialGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#070711" />
-  <circle cx="32" cy="32" r="20" fill="none" stroke="url(#g)" stroke-width="2.5" opacity="0.5" />
-  <circle cx="32" cy="32" r="11" fill="none" stroke="url(#g)" stroke-width="2.5" opacity="0.8" />
-  <circle cx="32" cy="32" r="3.5" fill="url(#g)" />
-  <line x1="32" y1="32" x2="48" y2="20" stroke="url(#g)" stroke-width="3" stroke-linecap="round" />
+  <rect width="64" height="64" rx="14" fill="#141210"/>
+  <text x="30" y="43" text-anchor="middle" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="30" letter-spacing="-1.5" fill="#e7dfce">RN</text>
+  <circle cx="49" cy="43" r="5" fill="url(#e)"/>
 </svg>

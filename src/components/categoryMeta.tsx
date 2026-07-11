@@ -20,14 +20,14 @@ export const CATEGORY_ICON: Record<Category, IconType> = {
   "Cultura Nerd": RadarIcon,
 };
 
-/** Cor do "chip" por tipo de vídeo. */
+/** Cor do "chip" por tipo de vídeo — paleta quente (Brasa/Creme/âmbar). */
 export const TYPE_STYLE: Record<VideoType, string> = {
-  review: "bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/25",
-  teoria: "bg-grape-500/15 text-grape-400 ring-1 ring-grape-500/25",
-  ranking: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25",
-  explicação: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25",
-  notícia: "bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/25",
-  curiosidade: "bg-electric-500/15 text-electric-400 ring-1 ring-electric-500/25",
+  review: "bg-white/5 text-creme-300 ring-1 ring-white/10",
+  teoria: "bg-electric-500/15 text-electric-400 ring-1 ring-electric-500/25",
+  ranking: "bg-grape-500/15 text-grape-400 ring-1 ring-grape-500/25",
+  explicação: "bg-white/5 text-slate-300 ring-1 ring-white/10",
+  notícia: "bg-electric-600/20 text-electric-400 ring-1 ring-electric-600/30",
+  curiosidade: "bg-grape-400/15 text-grape-400 ring-1 ring-grape-400/25",
 };
 
 export const TYPE_LABEL: Record<VideoType, string> = {

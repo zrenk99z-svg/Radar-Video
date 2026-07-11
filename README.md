@@ -124,7 +124,7 @@ npm run lint       # type-check (tsc --noEmit)
 ```
 (raiz do repositório)
   index.html
-  tailwind.config.js        cores (azul elétrico/roxo), glow, animações
+  tailwind.config.js        identidade Refúgio Nerd (Preto/Brasa/Creme), glow
   src/
     App.tsx                 layout principal (busca, concorrência, ranking,
                             títulos, radar, calendário, salvos)
