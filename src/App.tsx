@@ -131,9 +131,7 @@ export default function App() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!viralOnly && (
-                    <FormatFilter value={formatFilter} onChange={setFormatFilter} />
-                  )}
+                  <FormatFilter value={formatFilter} onChange={setFormatFilter} />
                   <button
                     onClick={() => setViralOnly((v) => !v)}
                     className={
@@ -151,6 +149,7 @@ export default function App() {
               {viralOnly ? (
                 <ViralMode
                   ideas={ideas}
+                  formatFilter={formatFilter}
                   savedFormats={savedFormats}
                   onSave={saveAs}
                 />

@@ -6,17 +6,23 @@ import { FireIcon } from "./Icons";
 
 interface Props {
   ideas: VideoIdea[];
+  formatFilter: "todos" | VideoFormat;
   savedFormats: Map<string, VideoFormat>;
   onSave: (idea: VideoIdea, format: VideoFormat) => void;
 }
 
-/** Modo Viral: destaca os 5 temas com maior chance de viralizar no curto prazo. */
-export function ViralMode({ ideas, savedFormats, onSave }: Props) {
-  const top5 = [...ideas]
+/** Modo Viral: destaca os temas com maior chance de viralizar no curto prazo. */
+export function ViralMode({ ideas, formatFilter, savedFormats, onSave }: Props) {
+  const pool =
+    formatFilter === "todos"
+      ? ideas
+      : ideas.filter((i) => suggestFormat(i) === formatFilter);
+  const top5 = [...pool]
     .sort((a, b) => viralScore(b) - viralScore(a))
     .slice(0, 5);
 
-  if (top5.length === 0) return null;
+  const filterLabel =
+    formatFilter === "longo" ? "vídeo longo" : formatFilter === "short" ? "short" : null;
 
   return (
     <section id="viral" className="scroll-mt-24">
@@ -29,13 +35,22 @@ export function ViralMode({ ideas, savedFormats, onSave }: Props) {
             Modo Viral
           </h2>
           <p className="text-sm text-slate-400">
-            Os 5 temas com maior chance de explodir em views no curto prazo.
+            {filterLabel
+              ? `Os ${top5.length} temas mais virais que encaixam como ${filterLabel}.`
+              : "Os 5 temas com maior chance de explodir em views no curto prazo."}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {top5.map((idea, i) => (
+      {top5.length === 0 ? (
+        <div className="card-glow p-8 text-center text-slate-400">
+          Nenhum tema viral encaixa como{" "}
+          {formatFilter === "longo" ? "vídeo longo" : "short"} agora. Tente
+          “Todos”.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {top5.map((idea, i) => (
           <IdeaCard
             key={idea.id}
             idea={idea}
@@ -45,8 +60,9 @@ export function ViralMode({ ideas, savedFormats, onSave }: Props) {
             suggested={suggestFormat(idea)}
             onSave={onSave}
           />
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
