@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import type { VideoIdea } from "./types";
+import type { VideoFormat, VideoIdea } from "./types";
 import { generateIdeas } from "./lib/ideaGenerator";
 import { rankIdeas } from "./lib/scoring";
+import { resolveFormat, suggestFormat } from "./lib/format";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useSettings, type Settings } from "./lib/settings";
 
@@ -15,7 +16,14 @@ import { TitleLab } from "./components/TitleLab";
 import { EditorialCalendar } from "./components/EditorialCalendar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { InstallPrompt } from "./components/InstallPrompt";
-import { FireIcon, GearIcon, RadarIcon, SparkIcon } from "./components/Icons";
+import {
+  FireIcon,
+  GearIcon,
+  LongIcon,
+  RadarIcon,
+  ShortIcon,
+  SparkIcon,
+} from "./components/Icons";
 
 const STORAGE_KEY = "refugio-nerd:proximos-videos";
 
@@ -27,9 +35,17 @@ export default function App() {
   const [ideas, setIdeas] = useState<VideoIdea[]>([]);
   const [loading, setLoading] = useState(false);
   const [viralOnly, setViralOnly] = useState(false);
+  const [formatFilter, setFormatFilter] = useState<"todos" | VideoFormat>("todos");
 
-  const savedIds = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
-  const ranked = useMemo(() => rankIdeas(ideas), [ideas]);
+  const savedFormats = useMemo(
+    () => new Map(saved.map((s) => [s.id, resolveFormat(s)])),
+    [saved],
+  );
+  const ranked = useMemo(() => {
+    const list = rankIdeas(ideas);
+    if (formatFilter === "todos") return list;
+    return list.filter((i) => suggestFormat(i) === formatFilter);
+  }, [ideas, formatFilter]);
 
   function handleSearch(term: string) {
     setLoading(true);
@@ -43,12 +59,21 @@ export default function App() {
     }, 320);
   }
 
-  function toggleSave(idea: VideoIdea) {
-    setSaved((prev) =>
-      prev.some((s) => s.id === idea.id)
-        ? prev.filter((s) => s.id !== idea.id)
-        : [...prev, idea],
-    );
+  /**
+   * Salva a ideia com um formato (Longo/Short). Se já estiver salva no mesmo
+   * formato, remove; se estiver salva em outro formato, apenas troca.
+   */
+  function saveAs(idea: VideoIdea, format: VideoFormat) {
+    setSaved((prev) => {
+      const existing = prev.find((s) => s.id === idea.id);
+      if (!existing) return [...prev, { ...idea, format }];
+      if (existing.format === format) return prev.filter((s) => s.id !== idea.id);
+      return prev.map((s) => (s.id === idea.id ? { ...s, format } : s));
+    });
+  }
+
+  function setSavedFormat(id: string, format: VideoFormat) {
+    setSaved((prev) => prev.map((s) => (s.id === id ? { ...s, format } : s)));
   }
 
   function patchSettings(p: Partial<Settings>) {
@@ -100,28 +125,41 @@ export default function App() {
                     <span className="text-electric-400">“{subject}”</span>
                   </h2>
                   <p className="text-sm text-slate-400">
-                    {ideas.length} ideias, ordenadas do melhor para o pior tema.
+                    {formatFilter === "todos"
+                      ? `${ideas.length} ideias, ordenadas do melhor para o pior tema.`
+                      : `${ranked.length} de ${ideas.length} ideias que encaixam como ${formatFilter === "longo" ? "vídeo longo" : "short"}.`}
                   </p>
                 </div>
-                <button
-                  onClick={() => setViralOnly((v) => !v)}
-                  className={
-                    viralOnly
-                      ? "inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-grape-500 px-4 py-2.5 font-semibold text-white shadow-glow-grape transition active:scale-95"
-                      : "btn-ghost"
-                  }
-                >
-                  <FireIcon className="h-4 w-4" />
-                  {viralOnly ? "Mostrando Modo Viral" : "Modo Viral"}
-                </button>
+                <div className="flex items-center gap-2">
+                  {!viralOnly && (
+                    <FormatFilter value={formatFilter} onChange={setFormatFilter} />
+                  )}
+                  <button
+                    onClick={() => setViralOnly((v) => !v)}
+                    className={
+                      viralOnly
+                        ? "inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-electric-600 to-grape-500 px-4 py-2.5 font-semibold text-void-900 shadow-glow-grape transition active:scale-95"
+                        : "btn-ghost"
+                    }
+                  >
+                    <FireIcon className="h-4 w-4" />
+                    {viralOnly ? "Modo Viral" : "Modo Viral"}
+                  </button>
+                </div>
               </div>
 
               {viralOnly ? (
                 <ViralMode
                   ideas={ideas}
-                  savedIds={savedIds}
-                  onToggleSave={toggleSave}
+                  savedFormats={savedFormats}
+                  onSave={saveAs}
                 />
+              ) : ranked.length === 0 ? (
+                <div className="card-glow p-8 text-center text-slate-400">
+                  Nenhuma ideia encaixa como{" "}
+                  {formatFilter === "longo" ? "vídeo longo" : "short"} para este
+                  tema. Tente “Todos”.
+                </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {ranked.map((idea, i) => (
@@ -129,8 +167,9 @@ export default function App() {
                       key={idea.id}
                       idea={idea}
                       rank={i + 1}
-                      saved={savedIds.has(idea.id)}
-                      onToggleSave={toggleSave}
+                      savedFormat={savedFormats.get(idea.id) ?? null}
+                      suggested={suggestFormat(idea)}
+                      onSave={saveAs}
                     />
                   ))}
                 </div>
@@ -167,6 +206,7 @@ export default function App() {
           saved={saved}
           onRemove={(id) => setSaved((prev) => prev.filter((s) => s.id !== id))}
           onClear={() => setSaved([])}
+          onSetFormat={setSavedFormat}
         />
       </main>
 
@@ -240,6 +280,39 @@ function Header({
         </div>
       </div>
     </header>
+  );
+}
+
+function FormatFilter({
+  value,
+  onChange,
+}: {
+  value: "todos" | VideoFormat;
+  onChange: (v: "todos" | VideoFormat) => void;
+}) {
+  const opts: { key: "todos" | VideoFormat; label: string; Icon?: typeof LongIcon }[] =
+    [
+      { key: "todos", label: "Todos" },
+      { key: "longo", label: "Longo", Icon: LongIcon },
+      { key: "short", label: "Short", Icon: ShortIcon },
+    ];
+  return (
+    <div className="inline-flex items-center gap-0.5 rounded-xl glass p-0.5">
+      {opts.map((o) => (
+        <button
+          key={o.key}
+          onClick={() => onChange(o.key)}
+          className={
+            value === o.key
+              ? "inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-electric-500 to-grape-400 px-3 py-2 text-sm font-semibold text-void-900"
+              : "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
+          }
+        >
+          {o.Icon && <o.Icon className="h-4 w-4" />}
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

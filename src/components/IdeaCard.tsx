@@ -1,21 +1,35 @@
-import type { VideoIdea } from "../types";
+import type { VideoFormat, VideoIdea } from "../types";
 import { scoreLabel } from "../lib/scoring";
+import { FORMAT_LABEL } from "../lib/format";
 import { ScoreRing } from "./ScoreRing";
 import { MetricBar } from "./MetricBar";
-import { BookmarkIcon, CheckIcon, FireIcon } from "./Icons";
+import { FireIcon, LongIcon, ShortIcon } from "./Icons";
 import { CATEGORY_ICON, TYPE_LABEL, TYPE_STYLE } from "./categoryMeta";
 
 interface Props {
   idea: VideoIdea;
   rank?: number;
-  saved: boolean;
+  /** Formato com que foi salvo, ou null se não estiver salvo. */
+  savedFormat: VideoFormat | null;
+  /** Formato sugerido (mostrado como selo e como recomendação). */
+  suggested: VideoFormat;
   viral?: boolean;
-  onToggleSave: (idea: VideoIdea) => void;
+  onSave: (idea: VideoIdea, format: VideoFormat) => void;
 }
 
-/** Card de uma ideia de vídeo, com métricas e botão salvar. */
-export function IdeaCard({ idea, rank, saved, viral, onToggleSave }: Props) {
+const FORMAT_ICON = { longo: LongIcon, short: ShortIcon } as const;
+
+/** Card de uma ideia de vídeo, com métricas, formato sugerido e salvar Longo/Short. */
+export function IdeaCard({
+  idea,
+  rank,
+  savedFormat,
+  suggested,
+  viral,
+  onSave,
+}: Props) {
   const Icon = CATEGORY_ICON[idea.category];
+  const SuggestedIcon = FORMAT_ICON[suggested];
 
   return (
     <article
@@ -24,7 +38,7 @@ export function IdeaCard({ idea, rank, saved, viral, onToggleSave }: Props) {
       }`}
     >
       {viral && (
-        <span className="absolute -top-2.5 left-4 chip bg-gradient-to-r from-rose-500 to-grape-500 text-white shadow-glow-grape">
+        <span className="absolute -top-2.5 left-4 chip bg-gradient-to-r from-electric-600 to-grape-500 text-void-900 shadow-glow-grape">
           <FireIcon className="h-3.5 w-3.5" /> Viral
         </span>
       )}
@@ -47,6 +61,13 @@ export function IdeaCard({ idea, rank, saved, viral, onToggleSave }: Props) {
             <span className={`chip ${TYPE_STYLE[idea.type]}`}>
               {TYPE_LABEL[idea.type]}
             </span>
+            <span
+              title="Formato sugerido para este tema"
+              className="chip bg-electric-500/10 text-electric-400 ring-1 ring-electric-500/25"
+            >
+              <SuggestedIcon className="h-3.5 w-3.5" />
+              {FORMAT_LABEL[suggested]}
+            </span>
           </div>
         </div>
         <ScoreRing score={idea.score} />
@@ -60,32 +81,74 @@ export function IdeaCard({ idea, rank, saved, viral, onToggleSave }: Props) {
         <MetricBar label="Dificuldade" value={idea.difficulty} invertColor />
       </div>
 
-      <footer className="mt-auto flex items-center justify-between pt-1">
+      <footer className="mt-auto flex items-center justify-between gap-2 pt-1">
         <span className="text-xs text-slate-400">
-          Potencial:{" "}
-          <span className="font-semibold text-slate-200">
-            {scoreLabel(idea.score)}
-          </span>
-        </span>
-        <button
-          onClick={() => onToggleSave(idea)}
-          className={
-            saved
-              ? "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30 transition hover:bg-emerald-500/25"
-              : "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium glass hover:border-electric-500/40 hover:text-white transition"
-          }
-        >
-          {saved ? (
-            <>
-              <CheckIcon className="h-4 w-4" /> Salvo
-            </>
+          {savedFormat ? (
+            <span className="text-emerald-300">✓ Salvo</span>
           ) : (
             <>
-              <BookmarkIcon className="h-4 w-4" /> Salvar
+              Potencial:{" "}
+              <span className="font-semibold text-slate-200">
+                {scoreLabel(idea.score)}
+              </span>
             </>
           )}
-        </button>
+        </span>
+
+        <div className="flex items-center gap-1.5">
+          <span className="hidden text-[11px] text-slate-500 sm:inline">
+            Salvar:
+          </span>
+          <div className="inline-flex items-center gap-0.5 rounded-xl glass p-0.5">
+            <FormatButton
+              format="longo"
+              active={savedFormat === "longo"}
+              suggested={suggested === "longo" && !savedFormat}
+              onClick={() => onSave(idea, "longo")}
+            />
+            <FormatButton
+              format="short"
+              active={savedFormat === "short"}
+              suggested={suggested === "short" && !savedFormat}
+              onClick={() => onSave(idea, "short")}
+            />
+          </div>
+        </div>
       </footer>
     </article>
+  );
+}
+
+function FormatButton({
+  format,
+  active,
+  suggested,
+  onClick,
+}: {
+  format: VideoFormat;
+  active: boolean;
+  suggested: boolean;
+  onClick: () => void;
+}) {
+  const FmtIcon = FORMAT_ICON[format];
+  return (
+    <button
+      onClick={onClick}
+      title={
+        active
+          ? `Salvo como ${FORMAT_LABEL[format]} — clique para remover`
+          : `Salvar como ${FORMAT_LABEL[format]}`
+      }
+      className={
+        active
+          ? "inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-electric-500 to-grape-400 px-2.5 py-1.5 text-xs font-semibold text-void-900"
+          : `inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white ${
+              suggested ? "ring-1 ring-electric-500/40" : ""
+            }`
+      }
+    >
+      <FmtIcon className="h-3.5 w-3.5" />
+      {FORMAT_LABEL[format]}
+    </button>
   );
 }

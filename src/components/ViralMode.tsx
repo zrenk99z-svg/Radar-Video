@@ -1,16 +1,17 @@
-import type { VideoIdea } from "../types";
+import type { VideoFormat, VideoIdea } from "../types";
 import { viralScore } from "../lib/scoring";
+import { suggestFormat } from "../lib/format";
 import { IdeaCard } from "./IdeaCard";
 import { FireIcon } from "./Icons";
 
 interface Props {
   ideas: VideoIdea[];
-  savedIds: Set<string>;
-  onToggleSave: (idea: VideoIdea) => void;
+  savedFormats: Map<string, VideoFormat>;
+  onSave: (idea: VideoIdea, format: VideoFormat) => void;
 }
 
 /** Modo Viral: destaca os 5 temas com maior chance de viralizar no curto prazo. */
-export function ViralMode({ ideas, savedIds, onToggleSave }: Props) {
+export function ViralMode({ ideas, savedFormats, onSave }: Props) {
   const top5 = [...ideas]
     .sort((a, b) => viralScore(b) - viralScore(a))
     .slice(0, 5);
@@ -20,8 +21,8 @@ export function ViralMode({ ideas, savedIds, onToggleSave }: Props) {
   return (
     <section id="viral" className="scroll-mt-24">
       <div className="mb-4 flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-rose-500/30 to-grape-500/30 ring-1 ring-rose-500/40">
-          <FireIcon className="h-5 w-5 animate-pulse-glow text-rose-400" />
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-electric-500/30 to-grape-500/30 ring-1 ring-electric-500/40">
+          <FireIcon className="h-5 w-5 animate-pulse-glow text-electric-400" />
         </div>
         <div>
           <h2 className="font-display text-lg font-bold text-slate-100">
@@ -40,8 +41,9 @@ export function ViralMode({ ideas, savedIds, onToggleSave }: Props) {
             idea={idea}
             rank={i + 1}
             viral
-            saved={savedIds.has(idea.id)}
-            onToggleSave={onToggleSave}
+            savedFormat={savedFormats.get(idea.id) ?? null}
+            suggested={suggestFormat(idea)}
+            onSave={onSave}
           />
         ))}
       </div>

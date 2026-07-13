@@ -127,6 +127,20 @@ export const WandIcon = (p: P) => (
   </svg>
 );
 
+export const LongIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="6" width="18" height="12" rx="2" />
+    <path d="m10 9 5 3-5 3z" />
+  </svg>
+);
+
+export const ShortIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="7" y="3" width="10" height="18" rx="2" />
+    <path d="m11 9 3 2-3 2z" />
+  </svg>
+);
+
 export const LinkIcon = (p: P) => (
   <svg {...base} {...p}>
     <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />

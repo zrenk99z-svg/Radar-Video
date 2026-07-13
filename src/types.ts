@@ -17,6 +17,9 @@ export type Category =
 
 export type Emotion = "choque" | "mistério" | "hype" | "nostalgia";
 
+/** Formato do vídeo: longo (10min+) ou short (vertical, curto). */
+export type VideoFormat = "longo" | "short";
+
 /** A single generated video idea. */
 export interface VideoIdea {
   id: string;
@@ -37,6 +40,8 @@ export interface VideoIdea {
   thumbnailPotential: number;
   /** Pontuação final calculada (0-100). */
   score: number;
+  /** Formato escolhido ao salvar (Longo/Short). Ausente = usar o sugerido. */
+  format?: VideoFormat;
 }
 
 /** Auto-generated thumbnail concept for a saved idea. */

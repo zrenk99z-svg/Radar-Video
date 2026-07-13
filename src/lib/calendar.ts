@@ -1,4 +1,5 @@
-import type { VideoIdea, VideoType } from "../types";
+import type { VideoIdea } from "../types";
+import { resolveFormat } from "./format";
 
 /** Cadência do canal: 1 vídeo longo + 2 shorts por semana. */
 export interface CalendarConfig {
@@ -30,9 +31,6 @@ export interface WeekPlan {
   shorts: [Slot, Slot];
 }
 
-/** Tipos de vídeo que funcionam bem como short. */
-const SHORT_FRIENDLY: VideoType[] = ["curiosidade", "notícia", "ranking"];
-
 function addDays(base: Date, days: number): Date {
   const d = new Date(base);
   d.setDate(d.getDate() + days);
@@ -50,9 +48,10 @@ function iso(d: Date): string {
 }
 
 /**
- * Monta o calendário editorial preenchendo os slots com as ideias salvas.
- * Vídeos longos recebem as ideias de maior pontuação; os shorts recebem
- * ideias "short-friendly" ordenadas por potencial de cliques.
+ * Monta o calendário editorial preenchendo os slots com as ideias salvas,
+ * respeitando o formato escolhido (Longo/Short) de cada ideia. Os slots de
+ * vídeo longo recebem as ideias marcadas como "longo" (por pontuação); os
+ * shorts recebem as marcadas como "short" (por potencial de cliques).
  */
 export function buildCalendar(
   saved: VideoIdea[],
@@ -60,25 +59,15 @@ export function buildCalendar(
 ): WeekPlan[] {
   const start = new Date(config.startDate + "T00:00:00");
 
-  // Pool para longos: melhores por score.
-  const longPool = [...saved].sort((a, b) => b.score - a.score);
-  const usedLong = new Set<string>();
-  const longs: VideoIdea[] = [];
-  for (const idea of longPool) {
-    if (longs.length >= config.weeks) break;
-    longs.push(idea);
-    usedLong.add(idea.id);
-  }
+  // Longos: ideias marcadas como "longo", melhores por score.
+  const longs = saved
+    .filter((i) => resolveFormat(i) === "longo")
+    .sort((a, b) => b.score - a.score);
 
-  // Pool para shorts: short-friendly primeiro, por potencial de cliques.
-  const shortPool = [...saved]
-    .filter((i) => !usedLong.has(i.id))
-    .sort((a, b) => {
-      const af = SHORT_FRIENDLY.includes(a.type) ? 1 : 0;
-      const bf = SHORT_FRIENDLY.includes(b.type) ? 1 : 0;
-      if (af !== bf) return bf - af;
-      return b.clickPotential - a.clickPotential;
-    });
+  // Shorts: ideias marcadas como "short", por potencial de cliques.
+  const shortPool = saved
+    .filter((i) => resolveFormat(i) === "short")
+    .sort((a, b) => b.clickPotential - a.clickPotential);
 
   let shortIdx = 0;
   const weeks: WeekPlan[] = [];
