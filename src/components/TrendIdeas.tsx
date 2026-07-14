@@ -29,10 +29,6 @@ export function TrendIdeas({
   onExplore,
 }: Props) {
   const items = useMemo(() => buildTrendIdeas(results, 6), [results]);
-  const month = new Date().toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
 
   if (!enabled) return null;
 
@@ -47,7 +43,7 @@ export function TrendIdeas({
             Ideias em alta agora
           </h2>
           <p className="text-sm text-slate-400">
-            Geradas do que está em alta em {month} — clique para aprofundar.
+            Geradas do que está em alta na semana — clique para aprofundar.
           </p>
         </div>
       </div>

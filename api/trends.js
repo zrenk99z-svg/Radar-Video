@@ -112,10 +112,11 @@ async function redditTrends() {
     const trends = [];
     const results = await Promise.allSettled(
       REDDIT_SUBS.map(async ({ sub, category, broad }) => {
-        const res = await fetch(`${base}/r/${sub}/hot?limit=8&raw_json=1`, {
-          signal: t.signal,
-          headers,
-        });
+        // Top da SEMANA (não "hot"/do dia). O caminho .json é só no público.
+        const path = token
+          ? `${base}/r/${sub}/top?t=week&limit=8&raw_json=1`
+          : `${base}/r/${sub}/top.json?t=week&limit=8&raw_json=1`;
+        const res = await fetch(path, { signal: t.signal, headers });
         if (!res.ok) throw new Error(`r/${sub} HTTP ${res.status}`);
         const json = await res.json();
         return { category, sub, broad, children: json?.data?.children || [] };
@@ -157,10 +158,18 @@ async function redditTrends() {
 async function googleTrends() {
   const t = withTimeout(9000);
   try {
-    const res = await fetch("https://trends.google.com/trending/rss?geo=BR", {
-      signal: t.signal,
-      headers: { "User-Agent": UA, Accept: "application/rss+xml, application/xml" },
-    });
+    // hours=168 pede a janela de 7 dias (semana). Se o feed ignorar, ainda
+    // retorna os temas em alta — que passam pelo filtro nerd abaixo.
+    const res = await fetch(
+      "https://trends.google.com/trending/rss?geo=BR&hours=168",
+      {
+        signal: t.signal,
+        headers: {
+          "User-Agent": UA,
+          Accept: "application/rss+xml, application/xml",
+        },
+      },
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
     const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
@@ -209,7 +218,8 @@ async function youtubeTrends(subject) {
   }
   const t = withTimeout(9000);
   try {
-    const publishedAfter = new Date(Date.now() - 30 * 86400000).toISOString();
+    // Vídeos publicados nos últimos 7 dias (semana).
+    const publishedAfter = new Date(Date.now() - 7 * 86400000).toISOString();
     const url = new URL("https://www.googleapis.com/youtube/v3/search");
     url.searchParams.set("key", key);
     url.searchParams.set("part", "snippet");

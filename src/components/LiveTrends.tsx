@@ -18,11 +18,6 @@ export function LiveTrends({
   onReload,
   onExplore,
 }: Props) {
-  const currentMonth = new Date().toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <section id="tendencias" className="scroll-mt-24">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -38,8 +33,7 @@ export function LiveTrends({
               Radar de Tendências
             </h2>
             <p className="text-sm text-slate-400">
-              Temas nerd em alta agora ({currentMonth}) — clique para gerar
-              ideias.
+              Temas nerd em alta na semana — clique para gerar ideias.
             </p>
           </div>
         </div>
