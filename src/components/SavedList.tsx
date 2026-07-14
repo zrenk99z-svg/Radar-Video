@@ -3,7 +3,15 @@ import type { VideoFormat, VideoIdea } from "../types";
 import { rankIdeas } from "../lib/scoring";
 import { FORMAT_LABEL, resolveFormat } from "../lib/format";
 import { ThumbnailPreview } from "./ThumbnailPreview";
-import { BookmarkIcon, LongIcon, ShortIcon, TrashIcon } from "./Icons";
+import {
+  BookmarkIcon,
+  CheckIcon,
+  CloseIcon,
+  EditIcon,
+  LongIcon,
+  ShortIcon,
+  TrashIcon,
+} from "./Icons";
 import { CATEGORY_ICON, TYPE_LABEL, TYPE_STYLE } from "./categoryMeta";
 
 interface Props {
@@ -11,13 +19,31 @@ interface Props {
   onRemove: (id: string) => void;
   onClear: () => void;
   onSetFormat: (id: string, format: VideoFormat) => void;
+  onEditTitle: (id: string, title: string) => void;
 }
 
 const FORMAT_ICON = { longo: LongIcon, short: ShortIcon } as const;
 
-/** Lista "Próximos Vídeos" com formato (Longo/Short) e gerador de thumbnail. */
-export function SavedList({ saved, onRemove, onClear, onSetFormat }: Props) {
+/** Lista "Próximos Vídeos" com formato (Longo/Short), edição de título e thumbnail. */
+export function SavedList({
+  saved,
+  onRemove,
+  onClear,
+  onSetFormat,
+  onEditTitle,
+}: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
+  function startEdit(id: string, title: string) {
+    setEditingId(id);
+    setDraft(title);
+  }
+  function commitEdit() {
+    if (editingId) onEditTitle(editingId, draft);
+    setEditingId(null);
+  }
   const ordered = rankIdeas(saved);
   const longs = saved.filter((s) => resolveFormat(s) === "longo").length;
   const shorts = saved.length - longs;
@@ -72,9 +98,45 @@ export function SavedList({ saved, onRemove, onClear, onSetFormat }: Props) {
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-medium text-slate-100">
-                      {idea.title}
-                    </h3>
+                    {editingId === idea.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          autoFocus
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitEdit();
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                          className="min-w-0 flex-1 rounded-lg glass px-2 py-1 text-sm font-medium text-slate-100 outline-none focus:border-electric-500/50"
+                        />
+                        <button
+                          onClick={commitEdit}
+                          aria-label="Salvar título"
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-electric-500/15 text-electric-400 hover:bg-electric-500/25"
+                        >
+                          <CheckIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          aria-label="Cancelar"
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg glass text-slate-400 hover:text-white"
+                        >
+                          <CloseIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <h3 className="group/title flex items-center gap-1.5 font-medium text-slate-100">
+                        <span className="truncate">{idea.title}</span>
+                        <button
+                          onClick={() => startEdit(idea.id, idea.title)}
+                          aria-label="Editar título"
+                          className="shrink-0 text-slate-500 transition hover:text-electric-400"
+                        >
+                          <EditIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </h3>
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className={`chip ${TYPE_STYLE[idea.type]}`}>
                         {TYPE_LABEL[idea.type]}

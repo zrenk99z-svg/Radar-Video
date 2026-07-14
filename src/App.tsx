@@ -79,6 +79,12 @@ export default function App() {
     setSaved((prev) => prev.map((s) => (s.id === id ? { ...s, format } : s)));
   }
 
+  function editSavedTitle(id: string, title: string) {
+    const clean = title.trim();
+    if (!clean) return;
+    setSaved((prev) => prev.map((s) => (s.id === id ? { ...s, title: clean } : s)));
+  }
+
   function patchSettings(p: Partial<Settings>) {
     setSettings((s) => ({ ...s, ...p }));
   }
@@ -225,6 +231,7 @@ export default function App() {
           onRemove={(id) => setSaved((prev) => prev.filter((s) => s.id !== id))}
           onClear={() => setSaved([])}
           onSetFormat={setSavedFormat}
+          onEditTitle={editSavedTitle}
         />
       </main>
 
@@ -339,8 +346,8 @@ function Footer() {
     <footer className="safe-bottom border-t border-white/5 py-8">
       <div className="mx-auto max-w-7xl px-4 text-center text-sm text-slate-500 sm:px-6">
         <p>
-          Refúgio Nerd — Radar de Vídeos · fontes reais quando configuradas
-          (Reddit · YouTube · Google Trends), com fallback simulado · dados
+          Refúgio Nerd — Radar de Vídeos · tendências reais da semana
+          (Buscas do YouTube · Reddit · YouTube), com fallback simulado · dados
           salvos localmente no seu navegador.
         </p>
       </div>

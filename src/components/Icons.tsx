@@ -127,6 +127,19 @@ export const WandIcon = (p: P) => (
   </svg>
 );
 
+export const EditIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+  </svg>
+);
+
+export const CloseIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
+
 export const LongIcon = (p: P) => (
   <svg {...base} {...p}>
     <rect x="3" y="6" width="18" height="12" rx="2" />

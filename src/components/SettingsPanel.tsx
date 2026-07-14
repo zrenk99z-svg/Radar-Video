@@ -48,19 +48,11 @@ export function SettingsPanel({ open, settings, onChange, onClose }: Props) {
         </label>
 
         <Field
-          label="YouTube Data API v3 — chave"
-          hint="Habilita tendências e análise de concorrência reais."
+          label="YouTube Data API v3 — chave (opcional)"
+          hint="Adiciona vídeos populares da semana e a análise de concorrência real. As Buscas e o Reddit já funcionam sem chave."
           value={settings.youtubeApiKey}
           onChange={(v) => onChange({ youtubeApiKey: v })}
           placeholder="AIza…"
-        />
-
-        <Field
-          label="Google Trends — URL do proxy (opcional)"
-          hint="Google Trends não tem API pública com CORS. Aponte para seu proxy (?q=&geo=BR)."
-          value={settings.googleTrendsProxyUrl}
-          onChange={(v) => onChange({ googleTrendsProxyUrl: v })}
-          placeholder="https://seu-proxy.exemplo/trends"
         />
 
         <Field

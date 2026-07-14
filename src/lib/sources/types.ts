@@ -1,6 +1,11 @@
 import type { Category } from "../../types";
 
-export type TrendSource = "reddit" | "youtube" | "googletrends" | "simulado";
+export type TrendSource =
+  | "buscas"
+  | "reddit"
+  | "youtube"
+  | "googletrends"
+  | "simulado";
 
 /** Um tema normalizado, vindo de qualquer fonte (real ou simulada). */
 export interface LiveTrend {

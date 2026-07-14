@@ -1,6 +1,5 @@
 import { TRENDING } from "../../data/trends";
 import type { Settings } from "../settings";
-import { fetchGoogleTrends } from "./googleTrends";
 import { fetchRedditTrends } from "./reddit";
 import type { LiveTrend, SourceResult, TrendSource } from "./types";
 import { fetchYouTubeTrends } from "./youtube";
@@ -67,17 +66,13 @@ async function fetchClientTrends(
         simulatedFor("youtube", "Sem chave da YouTube Data API (Configurações)."),
       );
 
-  const google = settings.googleTrendsProxyUrl
-    ? fetchGoogleTrends(
-        settings.googleTrendsProxyUrl,
-        q || "cultura nerd",
-        signal,
-      ).catch((e: Error) => simulatedFor("googletrends", e.message))
-    : Promise.resolve(
-        simulatedFor("googletrends", "Sem proxy do Google Trends (Configurações)."),
-      );
+  // Buscas (autocomplete) só funcionam no servidor (/api/trends). No cliente,
+  // mostra simulado com aviso.
+  const buscas = Promise.resolve(
+    simulatedFor("buscas", "As buscas reais aparecem no deploy (servidor)."),
+  );
 
-  return Promise.all([reddit, youtube, google]);
+  return Promise.all([buscas, reddit, youtube]);
 }
 
 /**
@@ -99,6 +94,7 @@ export async function fetchAllTrends(
 
 /** Nome de exibição por fonte. */
 export const SOURCE_LABEL: Record<TrendSource, string> = {
+  buscas: "Buscas",
   reddit: "Reddit",
   youtube: "YouTube",
   googletrends: "Google Trends",

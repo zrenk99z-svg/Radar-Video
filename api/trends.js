@@ -154,52 +154,81 @@ async function redditTrends() {
   }
 }
 
-// ---------- Google Trends (feed RSS novo) ----------
-async function googleTrends() {
+// ---------- Buscas (autocomplete do YouTube = o que as pessoas pesquisam) ----------
+// Âncoras nerd; o autocomplete expande em buscas reais e específicas.
+const SEARCH_SEEDS = [
+  "marvel",
+  "dc",
+  "homem-aranha",
+  "batman",
+  "superman",
+  "vingadores",
+  "x-men",
+  "star wars",
+  "senhor dos anéis",
+  "harry potter",
+  "one piece",
+  "anime",
+  "dragon ball",
+  "demon slayer",
+  "the last of us",
+  "invencível",
+  "the boys",
+  "duna",
+  "godzilla",
+  "the batman 2",
+];
+
+async function fetchSuggest(seed, signal) {
+  const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&hl=pt&q=${encodeURIComponent(
+    seed,
+  )}`;
+  const res = await fetch(url, { signal, headers: { "User-Agent": UA } });
+  if (!res.ok) throw new Error(`suggest ${res.status}`);
+  const data = JSON.parse(await res.text()); // ["seed", ["s1","s2", ...]]
+  return Array.isArray(data?.[1]) ? data[1].map(String) : [];
+}
+
+async function searchTrends() {
   const t = withTimeout(9000);
   try {
-    // hours=168 pede a janela de 7 dias (semana). Se o feed ignorar, ainda
-    // retorna os temas em alta — que passam pelo filtro nerd abaixo.
-    const res = await fetch(
-      "https://trends.google.com/trending/rss?geo=BR&hours=168",
-      {
-        signal: t.signal,
-        headers: {
-          "User-Agent": UA,
-          Accept: "application/rss+xml, application/xml",
-        },
-      },
+    const results = await Promise.allSettled(
+      SEARCH_SEEDS.map((seed) =>
+        fetchSuggest(seed, t.signal).then((list) => ({ seed, list })),
+      ),
     );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const xml = await res.text();
-    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
-    const parsed = items.map((m) => {
-      const block = m[1];
-      return {
-        title: xmlTag(block, "title"),
-        traffic: xmlTag(block, "ht:approx_traffic"),
-        link: xmlTag(block, "link"),
-        news: xmlTag(block, "ht:news_item_title"),
-      };
-    });
-    // Google Trends é genérico: mantém só o que é nerd (temas do canal).
-    const trends = parsed
-      .filter((p) => isNerd(p.title + " " + p.news))
-      .slice(0, 12)
-      .map((p, i) => ({
-        id: `gt-${i}-${p.title.slice(0, 20)}`,
-        title: p.title,
-        source: "googletrends",
-        heat: clampHeat(92 - i * 5),
-        category: guessCategory(p.title + " " + p.news),
-        context: `Google Trends · BR${p.traffic ? " · " + p.traffic : ""}`,
-        url:
-          p.link || `https://www.google.com/search?q=${encodeURIComponent(p.title)}`,
-      }));
-    if (!trends.length) {
-      throw new Error("Nenhum tema nerd em alta hoje no Google Trends.");
+
+    // Pontua cada sugestão por posição (mais no topo = mais buscada).
+    const score = new Map();
+    for (const r of results) {
+      if (r.status !== "fulfilled") continue;
+      const { seed, list } = r.value;
+      list.slice(0, 8).forEach((raw, i) => {
+        const query = raw.trim();
+        if (!query) return;
+        if (query.toLowerCase() === seed.toLowerCase()) return; // termo puro é vago
+        if (query.split(/\s+/).length < 2) return; // exige especificidade
+        if (!isNerd(query)) return;
+        score.set(query, (score.get(query) || 0) + (8 - i));
+      });
     }
-    return { source: "googletrends", live: true, trends };
+
+    const ranked = [...score.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12);
+    if (!ranked.length) throw new Error("Autocomplete sem sugestões nerd.");
+
+    const max = ranked[0][1] || 1;
+    const trends = ranked.map(([query, pts], i) => ({
+      id: `sug-${i}-${query.slice(0, 24)}`,
+      title: query.charAt(0).toUpperCase() + query.slice(1),
+      source: "buscas",
+      heat: clampHeat(40 + (pts / max) * 59),
+      category: guessCategory(query),
+      context: "Pesquisado no YouTube",
+      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+    }));
+    return { source: "buscas", live: true, trends };
   } finally {
     t.clear();
   }
@@ -259,15 +288,15 @@ export default async function handler(req, res) {
   const subject =
     (req.query && (Array.isArray(req.query.q) ? req.query.q[0] : req.query.q)) || "";
 
-  const [reddit, google, youtube] = await Promise.all([
-    redditTrends().catch((e) => ({
-      source: "reddit",
+  const [buscas, reddit, youtube] = await Promise.all([
+    searchTrends().catch((e) => ({
+      source: "buscas",
       live: false,
       trends: [],
       note: String(e.message || e),
     })),
-    googleTrends().catch((e) => ({
-      source: "googletrends",
+    redditTrends().catch((e) => ({
+      source: "reddit",
       live: false,
       trends: [],
       note: String(e.message || e),
@@ -283,6 +312,6 @@ export default async function handler(req, res) {
   res.status(200).json({
     generatedAt: now.toISOString(),
     month,
-    sources: [reddit, youtube, google],
+    sources: [buscas, reddit, youtube],
   });
 }
