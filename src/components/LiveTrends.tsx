@@ -38,7 +38,8 @@ export function LiveTrends({
               Radar de Tendências
             </h2>
             <p className="text-sm text-slate-400">
-              Em alta agora ({currentMonth}) — clique para gerar ideias.
+              Temas nerd em alta agora ({currentMonth}) — clique para gerar
+              ideias.
             </p>
           </div>
         </div>

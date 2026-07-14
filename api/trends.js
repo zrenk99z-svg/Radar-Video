@@ -12,14 +12,17 @@
  * em segredo (nunca vão para o cliente).
  */
 
+// `broad: true` = subreddit amplo (pode ter tema não-nerd) → aplica filtro nerd.
+// Sem broad = subreddit já nerd → mantém tudo.
 const REDDIT_SUBS = [
   { sub: "marvelstudios", category: "Filmes" },
   { sub: "DC_Cinematic", category: "Filmes" },
-  { sub: "movies", category: "Filmes" },
-  { sub: "television", category: "Séries" },
   { sub: "comicbooks", category: "HQs" },
   { sub: "anime", category: "Animações" },
-  { sub: "gaming", category: "Games" },
+  { sub: "StarWars", category: "Filmes" },
+  { sub: "movies", category: "Filmes", broad: true },
+  { sub: "television", category: "Séries", broad: true },
+  { sub: "gaming", category: "Games", broad: true },
 ];
 
 const UA = "web:refugio-nerd-radar:1.0 (por Refúgio Nerd)";
@@ -41,6 +44,17 @@ function guessCategory(title) {
   if (/(série|serie|series|temporada|episódio)/.test(t)) return "Séries";
   if (/(herói|heroi|hero|marvel|dc)/.test(t)) return "Super-heróis";
   return "Filmes";
+}
+
+/**
+ * Relevância nerd: filmes/séries/HQs/animações/super-heróis/games/cultura pop.
+ * Usado para manter o Google Trends (que é genérico) só com temas do canal.
+ */
+const NERD =
+  /(marvel|\bdc\b|homem[\s-]?aranha|spider[\s-]?man|batman|superman|super[\s-]?her[oó]|x[\s-]?men|vingador|avenger|liga da justi[çc]a|justice league|quarteto fant[aá]stico|fantastic four|thor|loki|hulk|wolverine|deadpool|coringa|joker|gotham|star\s?wars|guerra nas estrelas|jedi|sith|mandalorian|senhor dos an[eé]is|lord of the rings|hobbit|rings of power|harry potter|anime|mang[aá]|otaku|one piece|naruto|dragon ball|demon slayer|jujutsu|chainsaw|hq|quadrinh|gibi|comics?|godzilla|kaiju|duna|dune|avatar|matrix|transformers|jurassic|alien|predador|predator|invenc[ií]vel|the boys|stranger things|wandavision|witcher|fallout|arcane|the last of us|house of the dragon|game of thrones|demolidor|daredevil|venom|sonic|pok[eé]mon|zelda|mario|playstation|\bps5\b|xbox|nintendo|elden ring|final fantasy|resident evil|gta|minecraft|fortnite|valorant|league of legends|cavaleiro das trevas|filme|s[eé]rie|trailer|temporada|cinema|hero[íi]s?|super-?heróis?|nerd|geek|cosplay|comic\s?con|ccxp)/i;
+
+function isNerd(text) {
+  return NERD.test(text || "");
 }
 function withTimeout(ms) {
   const ctrl = new AbortController();
@@ -97,14 +111,14 @@ async function redditTrends() {
 
     const trends = [];
     const results = await Promise.allSettled(
-      REDDIT_SUBS.map(async ({ sub, category }) => {
-        const res = await fetch(`${base}/r/${sub}/hot?limit=6&raw_json=1`, {
+      REDDIT_SUBS.map(async ({ sub, category, broad }) => {
+        const res = await fetch(`${base}/r/${sub}/hot?limit=8&raw_json=1`, {
           signal: t.signal,
           headers,
         });
         if (!res.ok) throw new Error(`r/${sub} HTTP ${res.status}`);
         const json = await res.json();
-        return { category, sub, children: json?.data?.children || [] };
+        return { category, sub, broad, children: json?.data?.children || [] };
       }),
     );
     for (const r of results) {
@@ -112,6 +126,8 @@ async function redditTrends() {
       for (const child of r.value.children) {
         const d = child?.data;
         if (!d || d.stickied || d.over_18) continue;
+        // Subs amplos: mantém só posts com cara de nerd.
+        if (r.value.broad && !isNerd(d.title)) continue;
         trends.push({
           id: `reddit-${d.id}`,
           title: trim(d.title),
@@ -148,23 +164,32 @@ async function googleTrends() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
     const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
-    const trends = items.slice(0, 12).map((m, i) => {
+    const parsed = items.map((m) => {
       const block = m[1];
-      const title = xmlTag(block, "title");
-      const traffic = xmlTag(block, "ht:approx_traffic");
-      const link = xmlTag(block, "link");
-      const news = xmlTag(block, "ht:news_item_title");
       return {
-        id: `gt-${i}-${title.slice(0, 20)}`,
-        title,
-        source: "googletrends",
-        heat: clampHeat(92 - i * 5),
-        category: guessCategory(title + " " + news),
-        context: `Google Trends · BR${traffic ? " · " + traffic : ""}`,
-        url: link || `https://www.google.com/search?q=${encodeURIComponent(title)}`,
+        title: xmlTag(block, "title"),
+        traffic: xmlTag(block, "ht:approx_traffic"),
+        link: xmlTag(block, "link"),
+        news: xmlTag(block, "ht:news_item_title"),
       };
     });
-    if (!trends.length) throw new Error("Google Trends vazio.");
+    // Google Trends é genérico: mantém só o que é nerd (temas do canal).
+    const trends = parsed
+      .filter((p) => isNerd(p.title + " " + p.news))
+      .slice(0, 12)
+      .map((p, i) => ({
+        id: `gt-${i}-${p.title.slice(0, 20)}`,
+        title: p.title,
+        source: "googletrends",
+        heat: clampHeat(92 - i * 5),
+        category: guessCategory(p.title + " " + p.news),
+        context: `Google Trends · BR${p.traffic ? " · " + p.traffic : ""}`,
+        url:
+          p.link || `https://www.google.com/search?q=${encodeURIComponent(p.title)}`,
+      }));
+    if (!trends.length) {
+      throw new Error("Nenhum tema nerd em alta hoje no Google Trends.");
+    }
     return { source: "googletrends", live: true, trends };
   } finally {
     t.clear();
