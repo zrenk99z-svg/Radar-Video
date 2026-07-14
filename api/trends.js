@@ -262,14 +262,15 @@ async function searchTrends() {
 }
 
 // ---------- YouTube (opcional, requer chave) ----------
-async function youtubeTrends(subject) {
-  const key = process.env.YOUTUBE_API_KEY;
+// A chave vem da env da Vercel (YOUTUBE_API_KEY) ou, se ausente, da chave que o
+// usuário salvou nas Configurações do app (enviada no header x-yt-key).
+async function youtubeTrends(subject, key) {
   if (!key) {
     return {
       source: "youtube",
       live: false,
       trends: [],
-      note: "Defina YOUTUBE_API_KEY nas variáveis da Vercel para ativar o YouTube.",
+      note: "Defina YOUTUBE_API_KEY nas variáveis da Vercel ou cole a chave nas Configurações do app.",
     };
   }
   const t = withTimeout(9000);
@@ -315,6 +316,11 @@ export default async function handler(req, res) {
   const subject =
     (req.query && (Array.isArray(req.query.q) ? req.query.q[0] : req.query.q)) || "";
 
+  // Chave do YouTube: prioriza a env da Vercel; se não houver, usa a que o
+  // usuário colou nas Configurações do app (chega no header x-yt-key).
+  const clientKey = req.headers["x-yt-key"];
+  const ytKey = process.env.YOUTUBE_API_KEY || clientKey || "";
+
   const [buscas, reddit, youtube] = await Promise.all([
     searchTrends().catch((e) => ({
       source: "buscas",
@@ -328,7 +334,7 @@ export default async function handler(req, res) {
       trends: [],
       note: String(e.message || e),
     })),
-    youtubeTrends(subject),
+    youtubeTrends(subject, ytKey),
   ]);
 
   const now = new Date();

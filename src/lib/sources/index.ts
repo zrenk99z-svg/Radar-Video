@@ -26,13 +26,22 @@ function simulatedFor(source: TrendSource, note?: string): SourceResult {
  * (ex.: `npm run dev` local ou host sem essa função) para cair no fallback.
  */
 async function fetchServerTrends(
+  settings: Settings,
   subject: string | undefined,
   signal?: AbortSignal,
 ): Promise<SourceResult[]> {
-  const url = subject
-    ? `/api/trends?q=${encodeURIComponent(subject)}`
-    : "/api/trends";
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+  const params = new URLSearchParams();
+  if (subject) params.set("q", subject);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  // Repassa a chave do YouTube das Configurações para o servidor (opcional).
+  // `yt=1` diferencia o cache; a chave em si vai no header, fora da URL.
+  if (settings.youtubeApiKey) {
+    params.set("yt", "1");
+    headers["x-yt-key"] = settings.youtubeApiKey;
+  }
+  const qs = params.toString();
+  const url = qs ? `/api/trends?${qs}` : "/api/trends";
+  const res = await fetch(url, { signal, headers });
   if (!res.ok) throw new Error(`/api/trends HTTP ${res.status}`);
   const data = (await res.json()) as { sources?: SourceResult[] };
   if (!Array.isArray(data.sources) || data.sources.length === 0) {
@@ -86,7 +95,7 @@ export async function fetchAllTrends(
   signal?: AbortSignal,
 ): Promise<SourceResult[]> {
   try {
-    return await fetchServerTrends(subject, signal);
+    return await fetchServerTrends(settings, subject, signal);
   } catch {
     return fetchClientTrends(settings, subject, signal);
   }
