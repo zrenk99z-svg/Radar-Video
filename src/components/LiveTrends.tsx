@@ -1,49 +1,27 @@
-import { useCallback, useEffect, useState } from "react";
-import type { Settings } from "../lib/settings";
-import {
-  fetchAllTrends,
-  SOURCE_LABEL,
-  type SourceResult,
-} from "../lib/sources";
+import { SOURCE_LABEL, type SourceResult } from "../lib/sources";
 import { CATEGORY_ICON } from "./categoryMeta";
 import { LinkIcon, RadarIcon } from "./Icons";
 
 interface Props {
-  settings: Settings;
-  subject?: string;
+  results: SourceResult[];
+  loading: boolean;
+  enabled: boolean;
+  onReload: () => void;
   onExplore: (subject: string) => void;
 }
 
 /** Radar de Tendências com fontes reais (Reddit, YouTube, Google Trends). */
-export function LiveTrends({ settings, subject, onExplore }: Props) {
-  const [results, setResults] = useState<SourceResult[]>([]);
-  const [loading, setLoading] = useState(false);
+export function LiveTrends({
+  results,
+  loading,
+  enabled,
+  onReload,
+  onExplore,
+}: Props) {
   const currentMonth = new Date().toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
   });
-
-  const load = useCallback(
-    (signal?: AbortSignal) => {
-      setLoading(true);
-      fetchAllTrends(settings, subject, signal)
-        .then((r) => setResults(r))
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    },
-    [settings, subject],
-  );
-
-  useEffect(() => {
-    if (!settings.enableLiveTrends) {
-      setResults([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    load(ctrl.signal);
-    return () => ctrl.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.enableLiveTrends, settings.youtubeApiKey, settings.googleTrendsProxyUrl]);
 
   return (
     <section id="tendencias" className="scroll-mt-24">
@@ -64,14 +42,14 @@ export function LiveTrends({ settings, subject, onExplore }: Props) {
             </p>
           </div>
         </div>
-        <button onClick={() => load()} disabled={loading} className="btn-ghost text-sm">
+        <button onClick={onReload} disabled={loading} className="btn-ghost text-sm">
           {loading ? "Buscando…" : "Atualizar"}
         </button>
       </div>
 
       {results.length === 0 ? (
         <div className="card-glow grid place-items-center p-8 text-center text-slate-400">
-          {settings.enableLiveTrends
+          {enabled
             ? "Carregando fontes…"
             : "Fontes ao vivo desativadas. Ative em Configurações."}
         </div>

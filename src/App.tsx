@@ -4,10 +4,12 @@ import { generateIdeas } from "./lib/ideaGenerator";
 import { rankIdeas } from "./lib/scoring";
 import { resolveFormat, suggestFormat } from "./lib/format";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useTrends } from "./hooks/useTrends";
 import { useSettings, type Settings } from "./lib/settings";
 
 import { SearchBar } from "./components/SearchBar";
 import { IdeaCard } from "./components/IdeaCard";
+import { TrendIdeas } from "./components/TrendIdeas";
 import { LiveTrends } from "./components/LiveTrends";
 import { ViralMode } from "./components/ViralMode";
 import { SavedList } from "./components/SavedList";
@@ -36,6 +38,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [viralOnly, setViralOnly] = useState(false);
   const [formatFilter, setFormatFilter] = useState<"todos" | VideoFormat>("todos");
+  const trends = useTrends(settings);
 
   const savedFormats = useMemo(
     () => new Map(saved.map((s) => [s.id, resolveFormat(s)])),
@@ -176,26 +179,42 @@ export default function App() {
             </>
           )}
 
-          {ideas.length === 0 && (
+          {ideas.length === 0 && !settings.enableLiveTrends && (
             <div className="card-glow grid place-items-center gap-3 p-12 text-center">
               <RadarIcon className="h-10 w-10 animate-pulse-glow text-electric-400" />
               <p className="max-w-md text-slate-400">
-                Comece pesquisando um herói, filme, série ou HQ — ou explore o{" "}
-                <a href="#tendencias" className="text-electric-400 hover:underline">
-                  Radar de Tendências
-                </a>{" "}
-                abaixo.
+                Comece pesquisando um herói, filme, série ou HQ. Ative as
+                fontes ao vivo em{" "}
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="text-electric-400 hover:underline"
+                >
+                  Configurações
+                </button>{" "}
+                para ver ideias a partir do que está em alta.
               </p>
             </div>
           )}
         </section>
 
+        {/* Ideias geradas a partir das tendências reais do mês */}
+        <TrendIdeas
+          results={trends.results}
+          loading={trends.loading}
+          enabled={settings.enableLiveTrends}
+          savedFormats={savedFormats}
+          onSave={saveAs}
+          onExplore={handleSearch}
+        />
+
         {/* Gerador de títulos com alto CTR — depende de um assunto */}
         {subject && <TitleLab subject={subject} settings={settings} />}
 
         <LiveTrends
-          settings={settings}
-          subject={subject || undefined}
+          results={trends.results}
+          loading={trends.loading}
+          enabled={settings.enableLiveTrends}
+          onReload={trends.reload}
           onExplore={handleSearch}
         />
 
