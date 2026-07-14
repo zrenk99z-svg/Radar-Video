@@ -56,6 +56,20 @@ const NERD =
 function isNerd(text) {
   return NERD.test(text || "");
 }
+
+/**
+ * Nerd "forte": exige uma franquia/gênero real (NÃO conta palavras genéricas
+ * como "filme/trailer/série"). Usado nas Buscas, onde "trailer da novela"
+ * passaria no filtro amplo. Assim, "trailer de Duna" entra e "trailer da
+ * novela" fica de fora.
+ */
+const STRONG_NERD =
+  /(marvel|\bdc\b|homem[\s-]?aranha|spider[\s-]?man|batman|superman|x[\s-]?men|vingador|avenger|liga da justi[çc]a|quarteto fant[aá]stico|fantastic four|thor|loki|hulk|wolverine|deadpool|coringa|joker|gotham|star\s?wars|guerra nas estrelas|jedi|sith|mandalorian|senhor dos an[eé]is|hobbit|rings of power|harry potter|anime|mang[aá]|one piece|naruto|dragon ball|demon slayer|jujutsu|chainsaw|invenc[ií]vel|the boys|godzilla|kaiju|duna|dune|avatar|matrix|transformers|jurassic|alien|predador|the last of us|stranger things|wandavision|wandinha|wednesday|witcher|fallout|arcane|house of the dragon|game of thrones|demolidor|daredevil|venom|sonic|pok[eé]mon|zelda|mario|\bgta\b|playstation|\bps5\b|xbox|nintendo|minecraft|fortnite|elden ring|final fantasy|resident evil|hq|quadrinh|gibi|nerd|geek|cosplay|comic\s?con|ccxp)/i;
+
+function isNerdStrong(text) {
+  return STRONG_NERD.test(text || "");
+}
+
 function withTimeout(ms) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
@@ -155,28 +169,37 @@ async function redditTrends() {
 }
 
 // ---------- Buscas (autocomplete do YouTube = o que as pessoas pesquisam) ----------
-// Âncoras nerd; o autocomplete expande em buscas reais e específicas.
+// Mistura de âncoras de franquia + filmes em alta + formatos (análise/trailer),
+// que o autocomplete expande em buscas reais e específicas.
 const SEARCH_SEEDS = [
+  // franquias / heróis
   "marvel",
   "dc",
   "homem-aranha",
   "batman",
-  "superman",
   "vingadores",
-  "x-men",
-  "star wars",
-  "senhor dos anéis",
-  "harry potter",
+  // filmes/franquias em alta
+  "superman legado",
+  "vingadores doomsday",
+  "deadpool wolverine",
+  "quarteto fantástico",
+  "duna",
+  "avatar",
+  "the batman 2",
+  "gta 6",
+  // animes / séries
   "one piece",
-  "anime",
   "dragon ball",
   "demon slayer",
-  "the last of us",
   "invencível",
   "the boys",
-  "duna",
-  "godzilla",
-  "the batman 2",
+  "wandinha",
+  // formatos: puxam "análise de X", "trailer de Y", "final explicado"
+  "trailer",
+  "análise",
+  "review",
+  "final explicado",
+  "cena pós créditos",
 ];
 
 async function fetchSuggest(seed, signal) {
@@ -204,11 +227,15 @@ async function searchTrends() {
       if (r.status !== "fulfilled") continue;
       const { seed, list } = r.value;
       list.slice(0, 8).forEach((raw, i) => {
-        const query = raw.trim();
+        const query = raw.trim().replace(/\s+/g, " ");
         if (!query) return;
         if (query.toLowerCase() === seed.toLowerCase()) return; // termo puro é vago
-        if (query.split(/\s+/).length < 2) return; // exige especificidade
-        if (!isNerd(query)) return;
+        const words = query.split(" ");
+        if (words.length < 2) return; // exige especificidade
+        // ignora repetição boba de palavra (ex.: "homem-aranha homem-aranha")
+        if (words.some((w, k) => k > 0 && w.toLowerCase() === words[k - 1].toLowerCase()))
+          return;
+        if (!isNerdStrong(query)) return; // só franquia/gênero de verdade
         score.set(query, (score.get(query) || 0) + (8 - i));
       });
     }
@@ -218,12 +245,12 @@ async function searchTrends() {
       .slice(0, 12);
     if (!ranked.length) throw new Error("Autocomplete sem sugestões nerd.");
 
-    const max = ranked[0][1] || 1;
-    const trends = ranked.map(([query, pts], i) => ({
+    // "Calor" espalhado pela posição no ranking (valores distintos, não tudo 99).
+    const trends = ranked.map(([query], i) => ({
       id: `sug-${i}-${query.slice(0, 24)}`,
       title: query.charAt(0).toUpperCase() + query.slice(1),
       source: "buscas",
-      heat: clampHeat(40 + (pts / max) * 59),
+      heat: clampHeat(97 - i * 4),
       category: guessCategory(query),
       context: "Pesquisado no YouTube",
       url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
